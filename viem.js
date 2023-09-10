@@ -6,9 +6,6 @@ const { dapiNames } = require("./dapiNames.js");
 
 async function call(chain) {
   console.time(chain.name);
-  console.log("\n-----------------------------------------------------------");
-  console.log(`Getting dAPI value/timestamp from ${chain.name} - ${chain.id}`);
-  console.log("\n-----------------------------------------------------------");
 
   // >>> client >>>
   const publicClient = createPublicClient({
@@ -48,18 +45,25 @@ async function call(chain) {
   }
 
   const data = await publicClient.multicall({ contracts });
+  console.log(">>>", chain.name);
 
+  let successCnt = 0;
+  let failCnt = 0;
   for (let i = 0; i < data.length; i++) {
     const el = data[i];
     if (el.status === "success") {
-      console.log(contracts[i].myDapiName, el.result);
+      successCnt++;
+      //console.log(contracts[i].myDapiName, el.result);
     } else {
-      console.log(contracts[i].myDapiName, "(not deployed)");
+      failCnt++;
+      //console.log(contracts[i].myDapiName, "(not deployed)");
     }
   }
+  console.log("deployed:", successCnt);
+  console.log("NOT deployed:", failCnt);
 
   console.timeEnd(chain.name);
-  console.log("-----------------------------\n");
+  console.log("-----------------------------");
 }
 
 function getHashName(dapiName) {
@@ -67,14 +71,14 @@ function getHashName(dapiName) {
 }
 
 async function start() {
-  console.time("run time");
-  // The await here is really not needed.
   // All chains can be run a the same time
-  await call(arbitrum);
-  await call(avalanche);
-  await call(polygon);
-  await call(polygonZkEvm);
-  console.timeEnd("run time");
+  console.log("\n*---------------------------------------*");
+  console.log(`* Getting dAPI values from Api3ServerV1 *`);
+  console.log("*---------------------------------------*");
+  call(arbitrum);
+  call(avalanche);
+  call(polygon);
+  call(polygonZkEvm);
 }
 
 start();

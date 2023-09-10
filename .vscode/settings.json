@@ -1,6 +1,7 @@
 {
   "cSpell.ignoreWords": ["markdownlint", "searchbox", "loglevel"],
   "cSpell.words": [
+    "arbitrum",
     "callstatic",
     "multicall",
     "dapi",
