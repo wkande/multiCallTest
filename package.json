@@ -4,8 +4,8 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "node ethers.js",
-    "viem": "node viem.js"
+    "run:read-ethers": "node ethers.js",
+    "run:read-viem": "node viem.js"
   },
   "author": "",
   "license": "MIT",

@@ -11,12 +11,14 @@ async function call() {
   console.log("keccakHash APE/USD:", keccakHashAPE);
   console.log("keccakHash AAVE/USD:", keccakHashAAVE);
 
+  // You should consider using dotenv library to put RPC urls and PRIVATE KEYs in a .env file
   // Provider (Polygon)
   const provider = new ethers.providers.StaticJsonRpcProvider(
     { url: "https://rpc.ankr.com/polygon", timeout: 4000 },
     137
   );
 
+  // Please make sure to never send ANY funds to this wallet (even testnet tokens)
   // Signer, a burner private key used below
   const signer = new ethers.Wallet(
     "0x6035b7e4b29b7d43b8eecdc14b8f69206792d40b67a25b6cd6362d11b8179e6b",
@@ -26,38 +28,85 @@ async function call() {
   // abi
   // probably the wrong one to use callstatic.multicall
   const abi = [
-    "function readDataFeedWithDapiNameHash(bytes32) external view returns (int224 value, uint32 timestamp)",
+    {
+      inputs: [
+        {
+          internalType: "bytes32",
+          name: "dapiNameHash",
+          type: "bytes32",
+        },
+      ],
+      name: "readDataFeedWithDapiNameHash",
+      outputs: [
+        {
+          internalType: "int224",
+          name: "value",
+          type: "int224",
+        },
+        {
+          internalType: "uint32",
+          name: "timestamp",
+          type: "uint32",
+        },
+      ],
+      stateMutability: "view",
+      type: "function",
+    },
+    {
+      inputs: [
+        {
+          internalType: "bytes[]",
+          name: "data",
+          type: "bytes[]",
+        },
+      ],
+      name: "tryMulticall",
+      outputs: [
+        {
+          internalType: "bool[]",
+          name: "successes",
+          type: "bool[]",
+        },
+        {
+          internalType: "bytes[]",
+          name: "returndata",
+          type: "bytes[]",
+        },
+      ],
+      stateMutability: "nonpayable",
+      type: "function",
+    },
   ];
 
+  // Maybe this is better since types are being exported from @api3/airnode-protocol-v1
+  // const api3ServerV1 = new Api3ServerV1__factory().attach(api3ServerV1Address);
+
   // Contract
-  const Api3ServerV1 = new ethers.Contract(
+  const api3ServerV1 = new ethers.Contract(
     "0x3dEC619dc529363767dEe9E71d8dD1A5bc270D76",
     abi,
     signer
   );
 
-  // my normal call next line, which will work but only gets a single dAPI
-  // const res = await Api3ServerV1.readDataFeedWithDapiNameHash(keccakHashAPE);
-
-  // Try to use Api3ServerV1.callstatic.multicall to get multiple dAPIs
-  // * Packages needed? callstatic seems to be undefined
-  // * The abi is probably wrong
-  // See the last_error.md file, shows the latest response for this call
-  const res = await Api3ServerV1.callstatic.multicall([
-    keccakHashAPE,
-    keccakHashAAVE,
+  // Used tryMulticall instead of multicall in case any of the read fails
+  const { successes, returndata } = await api3ServerV1.callStatic.tryMulticall([
+    api3ServerV1.interface.encodeFunctionData("readDataFeedWithDapiNameHash", [
+      keccakHashAPE,
+    ]),
+    api3ServerV1.interface.encodeFunctionData("readDataFeedWithDapiNameHash", [
+      keccakHashAAVE,
+    ]),
   ]);
-  console.log(res);
+  console.log(successes, returndata);
 
-  /** My guess is that this somehow is the solution but I get lost in it.
-
-        const api3ServerV1Interface = new ethers.utils.Interface(
-          Api3ServerV1Factory.abi
-        );
-        api3ServerV1Interface.encodeFunctionData("readDataFeedWithDapiNameHash", [
-          dapiNameHash,
-        ]);
-  */
+  console.log(
+    "APE/USD",
+    ethers.utils.defaultAbiCoder.decode(["int224", "uint32"], returndata[0])
+  );
+  console.log(
+    "AAVE/USD",
+    ethers.utils.defaultAbiCoder.decode(["int224", "uint32"], returndata[1])
+  );
 }
 
 call();
